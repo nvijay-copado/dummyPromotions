@@ -307,12 +307,6 @@
     <template if:true={showUserStorySection}>
         <lightning-card title="Created User Stories" icon-name="standard:user" class="slds-m-top_medium">
             <div slot="actions">
-                <lightning-button
-                    label={showUserStoryList}
-                    icon-name={showUserStoryList}
-                    onclick={handleToggleUserStoryList}
-                    variant="neutral"
-                ></lightning-button>
                 <template if:true={showUserStoryList}>
                     <lightning-button-icon
                         icon-name="utility:refresh"

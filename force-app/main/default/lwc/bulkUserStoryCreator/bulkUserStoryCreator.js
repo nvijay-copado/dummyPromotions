@@ -95,6 +95,34 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
             sortable: true
         },
         {
+            label: 'Ready to Promote',
+            fieldName: 'readyToPromote',
+            type: 'boolean',
+            sortable: true
+        },
+        {
+            label: 'Promote & Deploy',
+            fieldName: 'promoteAndDeploy',
+            type: 'boolean',
+            sortable: true
+        },
+        {
+            label: 'Latest Promotion',
+            fieldName: 'latestPromotionUrl',
+            type: 'url',
+            typeAttributes: {
+                label: { fieldName: 'latestPromotionName' },
+                target: '_blank'
+            },
+            sortable: true
+        },
+        {
+            label: 'Promotion Status',
+            fieldName: 'latestPromotionStatus',
+            type: 'text',
+            sortable: true
+        },
+        {
             label: 'Progress',
             fieldName: 'progress',
             type: 'percent',
@@ -647,6 +675,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
                     return {
                         ...us,
                         userStoryUrl: `/${us.id}`,
+                        latestPromotionUrl: us.latestPromotionId ? `/${us.latestPromotionId}` : '',
                         progressClass: this.getProgressClass(us.progress)
                     };
                 });

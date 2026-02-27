@@ -104,23 +104,19 @@ public with sharing class BulkUserStoryCreatorController {
         Set<Id> envIds = new Set<Id>();
         List<Id> orderedEnvIds = new List<Id>();
         
-        if(!pipeline.copado__Deployment_Flow_Steps__r.isEmpty()) {
-            copado__Deployment_Flow_Step__c firstStep = pipeline.copado__Deployment_Flow_Steps__r[0];
-            
-            if(firstStep.copado__Source_Environment__c != null && !envIds.contains(firstStep.copado__Source_Environment__c)) {
-                orderedEnvIds.add(firstStep.copado__Source_Environment__c);
-                envIds.add(firstStep.copado__Source_Environment__c);
+        Integer stepNum = 1;
+        for(copado__Deployment_Flow_Step__c step : pipeline.copado__Deployment_Flow_Steps__r) {
+            if(step.copado__Source_Environment__c != null && !envIds.contains(step.copado__Source_Environment__c)) {
+                orderedEnvIds.add(step.copado__Source_Environment__c);
+                envIds.add(step.copado__Source_Environment__c);
                 
                 EnvironmentInfo envInfo = new EnvironmentInfo();
-                envInfo.id = firstStep.copado__Source_Environment__c;
-                envInfo.name = firstStep.copado__Source_Environment__r.Name;
-                envInfo.stepNumber = 1;
+                envInfo.id = step.copado__Source_Environment__c;
+                envInfo.name = step.copado__Source_Environment__r.Name;
+                envInfo.stepNumber = stepNum++;
                 details.environments.add(envInfo);
             }
-        }
-        
-        Integer stepNum = 2;
-        for(copado__Deployment_Flow_Step__c step : pipeline.copado__Deployment_Flow_Steps__r) {
+            
             if(step.copado__Destination_Environment__c != null && !envIds.contains(step.copado__Destination_Environment__c)) {
                 orderedEnvIds.add(step.copado__Destination_Environment__c);
                 envIds.add(step.copado__Destination_Environment__c);
@@ -345,7 +341,8 @@ public with sharing class BulkUserStoryCreatorController {
             String query = 'SELECT Id, Name, copado__User_Story_Title__c, copado__Status__c, ' +
                         'copado__Environment__r.Name, copado__Project__r.Name, ' +
                         'copado__Release__r.Name, CreatedDate, CreatedBy.Name, ' +
-                        'copado__Progress__c, copado__Total_Story_Points__c ' +
+                        'copado__Progress__c, copado__Total_Story_Points__c, ' +
+                        'copado__Promote_and_Deploy__c, copado__Promote_Change__c ' +
                         'FROM copado__User_Story__c ' +
                         'WHERE copado__Project__c = :projectId AND copado__User_Story_Title__c LIKE :searchPattern';
             
@@ -366,6 +363,26 @@ public with sharing class BulkUserStoryCreatorController {
             }
             
             List<copado__User_Story__c> userStories = Database.query(query);
+            
+            // Collect IDs to query promotions
+            Set<Id> usIds = new Set<Id>();
+            for(copado__User_Story__c us : userStories) {
+                usIds.add(us.Id);
+            }
+            
+            // Query latest promotions
+            Map<Id, copado__Promoted_User_Story__c> latestPromotionsMap = new Map<Id, copado__Promoted_User_Story__c>();
+            if(!usIds.isEmpty()) {
+                for(copado__Promoted_User_Story__c pus : [
+                    SELECT copado__User_Story__c, copado__Promotion__c, copado__Promotion__r.Name, copado__Promotion__r.copado__Status__c
+                    FROM copado__Promoted_User_Story__c
+                    WHERE copado__User_Story__c IN :usIds
+                    ORDER BY CreatedDate ASC
+                ]) {
+                    latestPromotionsMap.put(pus.copado__User_Story__c, pus);
+                }
+            }
+            
             result.totalCount = userStories.size();
             for(copado__User_Story__c us : userStories) {
                 UserStoryInfo info = new UserStoryInfo();
@@ -380,6 +397,15 @@ public with sharing class BulkUserStoryCreatorController {
                 info.createdByName = us.CreatedBy.Name;
                 info.progress = us.copado__Progress__c != null ? us.copado__Progress__c : 0;
                 info.storyPoints = us.copado__Total_Story_Points__c;
+                info.promoteAndDeploy = us.copado__Promote_and_Deploy__c;
+                info.readyToPromote = us.copado__Promote_Change__c;
+                
+                if(latestPromotionsMap.containsKey(us.Id)) {
+                    copado__Promoted_User_Story__c pus = latestPromotionsMap.get(us.Id);
+                    info.latestPromotionId = pus.copado__Promotion__c;
+                    info.latestPromotionName = pus.copado__Promotion__r.Name;
+                    info.latestPromotionStatus = pus.copado__Promotion__r.copado__Status__c;
+                }
                 
                 result.userStories.add(info);
             }
@@ -493,6 +519,11 @@ public with sharing class BulkUserStoryCreatorController {
         @AuraEnabled public String createdByName;
         @AuraEnabled public Decimal progress;
         @AuraEnabled public Decimal storyPoints;
+        @AuraEnabled public Boolean promoteAndDeploy;
+        @AuraEnabled public Boolean readyToPromote;
+        @AuraEnabled public Id latestPromotionId;
+        @AuraEnabled public String latestPromotionName;
+        @AuraEnabled public String latestPromotionStatus;
     }
 
     public class UserStoryListResult {

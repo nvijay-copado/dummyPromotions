@@ -186,7 +186,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
         
         for(Integer i : scope) {
             uss.add(new copado__User_Story__c(
-                copado__User_Story_Title__c = 'Batch ' + batchRunId + ' - US ' + String.valueOf(i + 1).leftPad(4, '0'),
+                copado__User_Story_Title__c = 'Batch ' + batchRunId + ' Created - US ' + String.valueOf(i + 1).leftPad(4, '0'),
                 copado__Project__c = config.projectId,
                 copado__Release__c = config.releaseId,
                 copado__Environment__c = (Id)config.selectedEnvironmentId,
