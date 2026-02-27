@@ -1,0 +1,38 @@
+.summary-box {
+    padding: 1rem;
+    background-color: #f3f3f3;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    min-height: 100px;
+}
+
+.slds-text-heading_large {
+    font-size: 2rem;
+    font-weight: 300;
+    line-height: 1.25;
+}
+
+.slds-theme_shade {
+    background-color: #f3f3f3;
+    padding: 1rem;
+}
+
+.slds-theme_success {
+    background-color: #d9f0d1;
+    border-left: 4px solid #04844b;
+}
+
+.slds-theme_error {
+    background-color: #feded8;
+    border-left: 4px solid #c23934;
+}
+
+.slds-theme_warning {
+    background-color: #fef8e8;
+    border-left: 4px solid #fe9339;
+}
+
+lightning-datatable {
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+}
