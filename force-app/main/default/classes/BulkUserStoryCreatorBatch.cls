@@ -36,6 +36,11 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
     public Iterable<Integer> start(Database.BatchableContext bc) {
         System.debug('========================================');
         System.debug('Starting phase: ' + phase);
+        
+        // Use the actual Batch ID for the run ID in the first phase
+        if(phase == ProcessPhase.CREATE_USER_STORIES && bc != null) {
+            this.batchRunId = bc.getJobId();
+        }
         System.debug('Batch Run ID: ' + batchRunId);
         System.debug('========================================');
         
@@ -187,7 +192,6 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
                 copado__Environment__c = (Id)config.selectedEnvironmentId,
                 RecordTypeId = config.userStoryRecordTypeId,
                 copado__Status__c = 'Approved',
-                copado__Progress__c = 100,
                 copado__Apex_Code_Coverage__c = 95
             ));
         }

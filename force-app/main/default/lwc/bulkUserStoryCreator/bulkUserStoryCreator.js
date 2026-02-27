@@ -235,7 +235,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
     }
 
     get totalPages() {
-        return Math.ceil(this.totalUserStoriesCount / this.pageSize);
+        return Math.ceil(this.totalUserStories / this.pageSize);
     }
 
     get isFirstPage() {
@@ -247,10 +247,10 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
     }
 
     get pageInfo() {
-        if (this.totalUserStoriesCount === 0) return '0 of 0';
+        if (this.totalUserStories === 0) return '0 of 0';
         const start = (this.currentPage - 1) * this.pageSize + 1;
-        const end = Math.min(this.currentPage * this.pageSize, this.totalUserStoriesCount);
-        return `${start}-${end} of ${this.totalUserStoriesCount}`;
+        const end = Math.min(this.currentPage * this.pageSize, this.totalUserStories);
+        return `${start}-${end} of ${this.totalUserStories}`;
     }
 
     get statusBreakdownList() {
@@ -624,6 +624,12 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
             const offset = (this.currentPage - 1) * this.pageSize;
             console.log('loadUserStories - Offset:', offset, 'Limit:', this.pageSize);
 
+            console.log('getUserStoriesCreatedByBatch - request:', {
+                configJson: this.batchConfigJson,
+                batchId: this.batchId,
+                limitRecords: this.pageSize,
+                offsetRecords: offset
+            });
             const result = await getUserStoriesCreatedByBatch({
                 configJson: this.batchConfigJson,
                 batchId: this.batchId,
@@ -691,7 +697,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
 
         if (this.showUserStoryList && this.userStories.length === 0) {
             this.loadUserStories();
-            this.loadBatchSummary();
+           // this.loadBatchSummary();
         }
     }
 
@@ -699,7 +705,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
         console.log('handleRefreshUserStories - Refreshing user stories');
         this.currentPage = 1;
         this.loadUserStories();
-        this.loadBatchSummary();
+        //this.loadBatchSummary();
     }
 
     // Pagination handlers

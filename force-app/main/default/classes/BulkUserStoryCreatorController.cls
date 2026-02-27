@@ -356,12 +356,6 @@ public with sharing class BulkUserStoryCreatorController {
             // Order by most recent first
             query += ' ORDER BY CreatedDate DESC ';
             
-            // Get total count first
-            String countQuery = 'SELECT COUNT() FROM copado__User_Story__c WHERE copado__Project__c = :projectId ';
-            if(releaseId != null) {
-                countQuery += 'AND copado__Release__c = :releaseId';
-            }
-            result.totalCount = Database.countQuery(countQuery);
             
             // Add limit and offset
             if(limitRecords != null && limitRecords > 0) {
@@ -372,7 +366,7 @@ public with sharing class BulkUserStoryCreatorController {
             }
             
             List<copado__User_Story__c> userStories = Database.query(query);
-            
+            result.totalCount = userStories.size();
             for(copado__User_Story__c us : userStories) {
                 UserStoryInfo info = new UserStoryInfo();
                 info.id = us.Id;

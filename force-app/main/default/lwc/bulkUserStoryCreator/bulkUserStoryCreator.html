@@ -1,8 +1,16 @@
 <template>
     <lightning-card title="Bulk User Story Creator" icon-name="custom:custom63">
         <div class="slds-p-around_medium">
+            <p class="slds-text-body_regular slds-text-color_weak slds-m-bottom_medium">
+                Generate bulk User Stories, create associated metadata, and simulate promotion chains across your pipeline.
+            </p>
             
             <!-- Configuration Section -->
+            <div class="slds-section slds-is-open">
+                <h3 class="slds-section__title slds-theme_shade">
+                    <span class="slds-truncate slds-p-horizontal_small" title="Configuration">Configuration</span>
+                </h3>
+                <div aria-hidden="false" class="slds-section__content">
             <div class="slds-grid slds-gutters slds-wrap">
                 
                 <!-- Pipeline Selection -->
@@ -98,35 +106,47 @@
                 </div>
 
             </div>
+                </div>
+            </div>
 
             <!-- Pipeline Details -->
             <template if:true={pipelineDetails}>
-                <div class="slds-m-top_large">
-                    <h3 class="slds-text-heading_small slds-m-bottom_small">
-                        Pipeline: {pipelineDetails.pipelineName}
+                <div class="slds-section slds-is-open">
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Environment Selection">Environment Selection</span>
                     </h3>
-                    <p class="slds-text-body_small slds-m-bottom_small">
-                        Total Environments: {pipelineDetails.totalEnvironments}
-                    </p>
-                    
-                    <div class="slds-box slds-theme_shade">
-                        <h4 class="slds-text-heading_small slds-m-bottom_small">Environment</h4>
-                        <lightning-combobox
-                            name="environment"
-                            label="Select Environment"
-                            value={selectedEnvironmentId}
-                            placeholder="Select Environment"
-                            options={environmentOptions}
-                            onchange={handleEnvironmentChange}
-                            required
-                        ></lightning-combobox>
+                    <div aria-hidden="false" class="slds-section__content">
+                        <div class="slds-grid slds-gutters slds-wrap slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="slds-box slds-box_x-small slds-theme_default slds-media slds-media_center">
+                                    <div class="slds-media__figure">
+                                        <lightning-icon icon-name="standard:entitlement_process" size="small"></lightning-icon>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <p class="slds-text-heading_small">{pipelineDetails.pipelineName}</p>
+                                        <p class="slds-text-body_small slds-text-color_weak">{pipelineDetails.totalEnvironments} Environments in Pipeline</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-combobox
+                                    name="environment"
+                                    label="Select Environment"
+                                    value={selectedEnvironmentId}
+                                    placeholder="Select Environment"
+                                    options={environmentOptions}
+                                    onchange={handleEnvironmentChange}
+                                    required
+                                ></lightning-combobox>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </template>
 
             <!-- Validation Results -->
             <template if:true={showValidation}>
-                <div class="slds-m-top_large">
+                <div class="slds-m-top_medium">
                     <template if:true={hasValidationErrors}>
                         <div class="slds-box slds-theme_error slds-m-bottom_small">
                             <h4 class="slds-text-heading_small slds-m-bottom_x-small">Validation Errors</h4>
@@ -150,17 +170,27 @@
                     </template>
 
                     <template if:true={validationResult.isValid}>
-                        <div class="slds-box slds-theme_success">
-                            <h4 class="slds-text-heading_small slds-m-bottom_small">Estimated Results</h4>
-                            <div class="slds-grid slds-gutters">
-                                <div class="slds-col slds-size_1-of-3">
-                                    <p class="slds-text-body_small">Batches: <strong>{validationResult.estimatedBatches}</strong></p>
+                        <div class="slds-notify slds-notify_alert slds-theme_success slds-m-bottom_small" role="alert">
+                            <span class="slds-assistive-text">success</span>
+                            <span class="slds-icon_container slds-icon-utility-success slds-m-right_x-small">
+                                <lightning-icon icon-name="utility:success" variant="inverse" size="x-small"></lightning-icon>
+                            </span>
+                            <h2>Configuration is valid!</h2>
+                        </div>
+                        
+                        <div class="slds-box slds-theme_default slds-theme_alert-texture">
+                            <div class="slds-grid slds-gutters slds-text-align_center">
+                                <div class="slds-col slds-size_1-of-3" style="border-right: 1px solid #dddbda;">
+                                    <div class="slds-text-heading_medium">{validationResult.estimatedBatches}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">Batches</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3" style="border-right: 1px solid #dddbda;">
+                                    <div class="slds-text-heading_medium">{validationResult.estimatedTimeMinutes} min</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">Est. Time</div>
                                 </div>
                                 <div class="slds-col slds-size_1-of-3">
-                                    <p class="slds-text-body_small">Est. Time: <strong>{validationResult.estimatedTimeMinutes} min</strong></p>
-                                </div>
-                                <div class="slds-col slds-size_1-of-3">
-                                    <p class="slds-text-body_small">Total Metadata: <strong>{validationResult.totalMetadataRecords}</strong></p>
+                                    <div class="slds-text-heading_medium">{validationResult.totalMetadataRecords}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">Total Metadata</div>
                                 </div>
                             </div>
                         </div>
@@ -169,7 +199,7 @@
             </template>
 
             <!-- Action Buttons -->
-            <div class="slds-m-top_large slds-text-align_center">
+            <div class="slds-m-top_medium slds-text-align_right slds-border_top slds-p-top_medium">
                 <lightning-button
                     label="Validate Configuration"
                     variant="neutral"
@@ -295,39 +325,6 @@
             </div>
             
             <div class="slds-p-around_medium">
-                <!-- Summary Section -->
-                <template if:true={batchSummary}>
-                    <div class="slds-grid slds-gutters slds-m-bottom_medium">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                            <div class="summary-box slds-text-align_center">
-                                <div class="slds-text-heading_large slds-text-color_success">
-                                    {batchSummary.totalUserStories}
-                                </div>
-                                <div class="slds-text-body_small">Total User Stories</div>
-                            </div>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                            <div class="summary-box slds-text-align_center">
-                                <div class="slds-text-heading_large slds-text-color_default">
-                                    {batchSummary.totalMetadata}
-                                </div>
-                                <div class="slds-text-body_small">Total Metadata Items</div>
-                            </div>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                            <div class="summary-box">
-                                <div class="slds-text-body_small slds-m-bottom_x-small">
-                                    <strong>Status Breakdown:</strong>
-                                </div>
-                                <template for:each={statusBreakdownList} for:item="status">
-                                    <div key={status.key} class="slds-text-body_small">
-                                        {status.label}: {status.value}
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </template>
                 
                 <!-- User Story List -->
                 <template if:true={showUserStoryList}>
