@@ -242,19 +242,8 @@ public with sharing class BulkUserStoryCreatorController {
                 return result;
             }
             
-            // Create the batch job with individual parameters instead of a map
-            BulkUserStoryCreator.BulkUSConfig batchJob = new BulkUserStoryCreator.BulkUSConfig();
-            batchJob.pipelineId = config.pipelineId;
-            batchJob.projectId = config.projectId;
-            batchJob.releaseRecordId = config.releaseId;
-            batchJob.userStoryRecordTypeId = config.userStoryRecordTypeId;
-            batchJob.totalUserStories = config.totalUserStories;    
-            batchJob.userStoriesPerBatch = config.userStoriesPerBatch;
-            batchJob.metadataPerUserStory = config.metadataPerUserStory;    
-            batchJob.environmentIds = config.environmentIds;
-            batchJob.finalEnvironmentId = config.finalEnvironmentId;
-            
-            BulkUserStoryCreatorBatch batch = new BulkUserStoryCreatorBatch(batchJob);
+            // Pass the config directly to the batch
+            BulkUserStoryCreatorBatch batch = new BulkUserStoryCreatorBatch(config);
             Id batchId = Database.executeBatch(batch, config.userStoriesPerBatch);
             
             // Store config for reference
@@ -266,8 +255,9 @@ public with sharing class BulkUserStoryCreatorController {
             batchConfigMap.put('totalUserStories', config.totalUserStories);
             batchConfigMap.put('userStoriesPerBatch', config.userStoriesPerBatch);
             batchConfigMap.put('metadataPerUserStory', config.metadataPerUserStory);
-            batchConfigMap.put('environmentIds', config.environmentIds);
+            batchConfigMap.put('selectedEnvironmentId', config.selectedEnvironmentId);
             batchConfigMap.put('finalEnvironmentId', config.finalEnvironmentId);
+            batchConfigMap.put('executionMode', config.executionMode);
             
             result.success = true;
             result.batchId = batchId;
@@ -573,9 +563,11 @@ public with sharing class BulkUserStoryCreatorController {
         @AuraEnabled
         public Integer metadataPerUserStory;
         @AuraEnabled
-        public List<Id> environmentIds;
+        public Id selectedEnvironmentId;
         @AuraEnabled
         public Id finalEnvironmentId;
+        @AuraEnabled
+        public String executionMode;
     }
     
     public class ValidationResult {

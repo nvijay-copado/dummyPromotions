@@ -1,6 +1,6 @@
 public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, Database.Stateful {
     
-    private BulkUserStoryCreator.BulkUSConfig config;
+    private BulkUserStoryCreatorController.BatchConfiguration config;
     private ProcessPhase phase;
     private List<Id> createdUserStoryIds;
     private Set<Id> allCreatedUSIds; // Track all created IDs across batches
@@ -15,7 +15,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
     }
     
     // Constructor for initial batch execution
-    public BulkUserStoryCreatorBatch(BulkUserStoryCreator.BulkUSConfig config) {
+    public BulkUserStoryCreatorBatch(BulkUserStoryCreatorController.BatchConfiguration config) {
         this.config = config;
         this.phase = ProcessPhase.CREATE_USER_STORIES;
         this.createdUserStoryIds = new List<Id>();
@@ -25,7 +25,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
     }
     
     // Constructor for chaining between phases
-    private BulkUserStoryCreatorBatch(BulkUserStoryCreator.BulkUSConfig config, ProcessPhase phase, Set<Id> allCreatedUSIds, String batchRunId) {
+    private BulkUserStoryCreatorBatch(BulkUserStoryCreatorController.BatchConfiguration config, ProcessPhase phase, Set<Id> allCreatedUSIds, String batchRunId) {
         this.config = config;
         this.phase = phase;
         this.createdUserStoryIds = new List<Id>();
@@ -140,17 +140,23 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
             }
             when TRIGGER_PROMOTIONS {
                 System.debug('Promotions triggered successfully');
-                System.debug('NOTE: Waiting for Copado promotions to process...');
-                System.debug('Starting UPDATE_FINAL_ENV phase...');
                 
-                if(allCreatedUSIds == null || allCreatedUSIds.isEmpty()) {
-                    allCreatedUSIds = queryCreatedUserStories();
+                if (config.executionMode == 'READY_TO_PROMOTE') {
+                    System.debug('Execution Mode is Ready to Promote. Skipping UPDATE_FINAL_ENV phase.');
+                    System.debug('Batch completed successfully.');
+                } else {
+                    System.debug('NOTE: Waiting for Copado promotions to process...');
+                    System.debug('Starting UPDATE_FINAL_ENV phase...');
+                    
+                    if(allCreatedUSIds == null || allCreatedUSIds.isEmpty()) {
+                        allCreatedUSIds = queryCreatedUserStories();
+                    }
+                    
+                    BulkUserStoryCreatorBatch nextBatch = new BulkUserStoryCreatorBatch(
+                        config, ProcessPhase.UPDATE_FINAL_ENV, allCreatedUSIds, batchRunId
+                    );
+                    Database.executeBatch(nextBatch, config.userStoriesPerBatch);
                 }
-                
-                BulkUserStoryCreatorBatch nextBatch = new BulkUserStoryCreatorBatch(
-                    config, ProcessPhase.UPDATE_FINAL_ENV, allCreatedUSIds, batchRunId
-                );
-                Database.executeBatch(nextBatch, config.userStoriesPerBatch);
             }
             when UPDATE_FINAL_ENV {
                 System.debug('========================================');
@@ -177,8 +183,8 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
             uss.add(new copado__User_Story__c(
                 copado__User_Story_Title__c = 'Batch ' + batchRunId + ' - US ' + String.valueOf(i + 1).leftPad(4, '0'),
                 copado__Project__c = config.projectId,
-                copado__Release__c = config.releaseRecordId,
-                copado__Environment__c = config.environmentIds[0],
+                copado__Release__c = config.releaseId,
+                copado__Environment__c = (Id)config.selectedEnvironmentId,
                 RecordTypeId = config.userStoryRecordTypeId,
                 copado__Status__c = 'Approved',
                 copado__Progress__c = 100,
@@ -245,7 +251,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
         System.debug('Triggering promotions for ' + batchUSIds.size() + ' User Stories');
         
         List<copado__User_Story__c> ussToUpdate = [
-            SELECT Id, copado__Promote_and_Deploy__c 
+            SELECT Id, copado__Promote_and_Deploy__c, copado__Promote_Change__c
             FROM copado__User_Story__c 
             WHERE Id IN :batchUSIds
         ];
@@ -253,19 +259,23 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
         System.debug('Queried ' + ussToUpdate.size() + ' User Stories to update');
         
         for(copado__User_Story__c us : ussToUpdate) {
-            us.copado__Promote_and_Deploy__c = true;
+            if (config.executionMode == 'READY_TO_PROMOTE') {
+                us.copado__Promote_Change__c = true;
+                us.copado__Promote_and_Deploy__c = false;
+            } else {
+                us.copado__Promote_and_Deploy__c = true;
+            }
         }
         
         update ussToUpdate;
-        System.debug('✓ Successfully set Promote_and_Deploy__c = true for ' + ussToUpdate.size() + ' User Stories');
+        
+        if (config.executionMode == 'READY_TO_PROMOTE') {
+            System.debug('✓ Successfully set Ready_to_Promote__c = true for ' + ussToUpdate.size() + ' User Stories');
+        } else {
+            System.debug('✓ Successfully set Promote_and_Deploy__c = true for ' + ussToUpdate.size() + ' User Stories');
+        }
         
         // Verify the update
-        Integer verifyCount = [
-            SELECT COUNT() 
-            FROM copado__User_Story__c 
-            WHERE Id IN :batchUSIds AND copado__Promote_and_Deploy__c = true
-        ];
-        System.debug('Verification: ' + verifyCount + ' User Stories have Promote_and_Deploy__c = true');
     }
     
     // Update User Stories to final environment
@@ -291,7 +301,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
         for(copado__User_Story__c us : ussToUpdate) {
             us.copado__Environment__c = config.finalEnvironmentId;
             us.copado__Status__c = 'Deployed';
-            us.copado__Promote_and_Deploy__c = false;
+            //us.copado__Promote_and_Deploy__c = false;
         }
         
         update ussToUpdate;

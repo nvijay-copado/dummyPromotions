@@ -31,13 +31,16 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
 
     // Pipeline details
     @track pipelineDetails;
-    @track selectedEnvironments = [];
+    @track selectedEnvironmentId = '';
+    @track environmentOptions = [];
 
     // Validation - IMPORTANT: Only show validation after explicit validation
     @track validationResult = null;
     @track showValidation = false;
 
     // Batch execution
+    @track showExecutionModal = false;
+    @track selectedExecutionMode = 'READY_TO_PROMOTE';
     @track batchId;
     @track batchStatus;
     @track batchConfigJson;
@@ -146,6 +149,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
         const isComplete = this.selectedPipelineId &&
                this.selectedProjectId &&
                this.selectedRecordTypeId &&
+               this.selectedEnvironmentId &&
                !isNaN(totalUS) && totalUS > 0 &&
                !isNaN(usPerBatch) && usPerBatch > 0 &&
                !isNaN(metadataPerUS) && metadataPerUS >= 0;
@@ -194,6 +198,13 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
             warningsCount: this.validationResult?.warnings?.length
         });
         return hasWarnings;
+    }
+
+    get executionModeOptions() {
+        return [
+            { label: 'Ready to Promote', value: 'READY_TO_PROMOTE' },
+            { label: 'Promote & Deploy', value: 'PROMOTE_AND_DEPLOY' }
+        ];
     }
 
     get batchProgressPercentage() {
@@ -347,10 +358,18 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
             this.pipelineDetails = result;
             console.log('loadPipelineDetails - Success:', result);
 
-            // Auto-select all environments
-            if (result?.environmentIds) {
-                this.selectedEnvironments = [...result.environmentIds];
-                console.log('loadPipelineDetails - Auto-selected environments:', this.selectedEnvironments);
+            // Transform environments to options
+            if (result?.environments) {
+                this.environmentOptions = result.environments.map(env => ({
+                    label: env.name,
+                    value: env.id
+                }));
+            }
+
+            // Auto-select first environment
+            if (result?.firstEnvironmentId) {
+                this.selectedEnvironmentId = result.firstEnvironmentId;
+                console.log('loadPipelineDetails - Auto-selected environment:', this.selectedEnvironmentId);
             }
         } catch (error) {
             console.error('loadPipelineDetails - Error:', error);
@@ -368,7 +387,8 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
         this.selectedProjectId = '';
         this.selectedReleaseId = '';
         this.pipelineDetails = null;
-        this.selectedEnvironments = [];
+        this.selectedEnvironmentId = '';
+        this.environmentOptions = [];
         this.clearValidation();
 
         this.loadProjects(this.selectedPipelineId);
@@ -415,25 +435,10 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
         this.clearValidation();
     }
 
-    handleEnvironmentToggle(event) {
-        const envId = event.target.dataset.envId;
-        const isChecked = event.target.checked;
-        console.log('handleEnvironmentToggle - envId:', envId, 'isChecked:', isChecked);
-
-        if (isChecked) {
-            if (!this.selectedEnvironments.includes(envId)) {
-                this.selectedEnvironments = [...this.selectedEnvironments, envId];
-            }
-        } else {
-            this.selectedEnvironments = this.selectedEnvironments.filter(id => id !== envId);
-        }
-
-        console.log('handleEnvironmentToggle - Updated selectedEnvironments:', this.selectedEnvironments);
+    handleEnvironmentChange(event) {
+        this.selectedEnvironmentId = event.detail.value;
+        console.log('handleEnvironmentChange - New value:', this.selectedEnvironmentId);
         this.clearValidation();
-    }
-
-    isEnvironmentSelected(envId) {
-        return this.selectedEnvironments.includes(envId);
     }
 
     // Validation
@@ -458,7 +463,7 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
                 totalUserStories: parseInt(this.totalUserStories, 10),
                 userStoriesPerBatch: parseInt(this.userStoriesPerBatch, 10),
                 metadataPerUserStory: parseInt(this.metadataPerUserStory, 10),
-                environmentIds: this.selectedEnvironments,
+                selectedEnvironmentId: this.selectedEnvironmentId,
                 finalEnvironmentId: this.pipelineDetails?.finalEnvironmentId
             };
 
@@ -489,14 +494,29 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
     }
 
     // Batch execution
-    async handleStartBatch() {
-        console.log('handleStartBatch - Starting batch');
+    handleStartBatch() {
+        console.log('handleStartBatch - Opening modal');
         
         if (!this.canStartBatch) {
             console.warn('handleStartBatch - Cannot start batch');
             this.showToast('Warning', 'Please validate configuration first', 'warning');
             return;
         }
+        
+        this.showExecutionModal = true;
+    }
+
+    handleCloseModal() {
+        this.showExecutionModal = false;
+    }
+
+    handleExecutionModeChange(event) {
+        this.selectedExecutionMode = event.detail.value;
+    }
+
+    async handleConfirmBatch() {
+        console.log('handleConfirmBatch - Starting batch');
+        this.showExecutionModal = false;
 
         this.isStartingBatch = true;
         try {
@@ -508,29 +528,30 @@ export default class BulkUserStoryCreator extends NavigationMixin(LightningEleme
                 totalUserStories: parseInt(this.totalUserStories, 10),
                 userStoriesPerBatch: parseInt(this.userStoriesPerBatch, 10),
                 metadataPerUserStory: parseInt(this.metadataPerUserStory, 10),
-                environmentIds: this.selectedEnvironments,
-                finalEnvironmentId: this.pipelineDetails?.finalEnvironmentId
+                selectedEnvironmentId: this.selectedEnvironmentId,
+                finalEnvironmentId: this.pipelineDetails?.finalEnvironmentId,
+                executionMode: this.selectedExecutionMode
             };
 
             const configJson = JSON.stringify(config);
-            console.log('handleStartBatch - Sending config to Apex:', configJson);
+            console.log('handleConfirmBatch - Sending config to Apex:', configJson);
 
             const result = await startBatch({ configJson });
-            console.log('handleStartBatch - Received result:', result);
+            console.log('handleConfirmBatch - Received result:', result);
 
             if (result.success) {
                 this.batchId = result.batchId;
                 this.batchConfigJson = result.configJson;
                 this.isBatchRunning = true;
-                console.log('handleStartBatch - Batch started successfully. BatchId:', this.batchId);
+                console.log('handleConfirmBatch - Batch started successfully. BatchId:', this.batchId);
                 this.showToast('Success', 'Batch job started successfully!', 'success');
                 this.startPolling();
             } else {
-                console.error('handleStartBatch - Batch start failed:', result.message);
+                console.error('handleConfirmBatch - Batch start failed:', result.message);
                 this.showToast('Error', result.message, 'error');
             }
         } catch (error) {
-            console.error('handleStartBatch - Exception:', error);
+            console.error('handleConfirmBatch - Exception:', error);
             this.showToast('Error', 'Failed to start batch: ' + error.body?.message, 'error');
         } finally {
             this.isStartingBatch = false;

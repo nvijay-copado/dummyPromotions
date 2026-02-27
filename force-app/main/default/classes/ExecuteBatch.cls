@@ -5,7 +5,7 @@ public with sharing class ExecuteBatch {
         // ========================================
 
         // STEP 1: Configure your settings
-        BulkUserStoryCreator.BulkUSConfig config = new BulkUserStoryCreator.BulkUSConfig();
+        BulkUserStoryCreatorController.BatchConfiguration config = new BulkUserStoryCreatorController.BatchConfiguration();
 
         // Pipeline/Deployment Flow ID
         config.pipelineId = 'a0W7Q000004YFo4UAG'; // REPLACE WITH YOUR PIPELINE ID
@@ -44,11 +44,11 @@ public with sharing class ExecuteBatch {
             }
         }
 
-        config.environmentIds = environmentIds;
+        config.selectedEnvironmentId = environmentIds[0]; // Assigns the first environment (Dev)
         config.finalEnvironmentId = environmentIds[environmentIds.size() - 1];
 
         System.debug('Environments configured: ' + environmentIds.size());
-        System.debug('First Environment: ' + environmentIds[0]);
+        System.debug('Selected Environment: ' + config.selectedEnvironmentId);
         System.debug('Final Environment: ' + config.finalEnvironmentId);
 
         // STEP 3: Get Project ID
@@ -78,8 +78,8 @@ public with sharing class ExecuteBatch {
         ];
 
         if(!releases.isEmpty()) {
-            config.releaseRecordId = releases[0].Id;
-            System.debug('Release ID: ' + config.releaseRecordId);
+            config.releaseId = releases[0].Id;
+            System.debug('Release ID: ' + config.releaseId);
             System.debug('Release Name: ' + releases[0].Name);
         } else {
             System.debug('No release found - User Stories will be created without release');
@@ -91,12 +91,12 @@ public with sharing class ExecuteBatch {
         System.debug('========================================');
         System.debug('Pipeline ID: ' + config.pipelineId);
         System.debug('Project ID: ' + config.projectId);
-        System.debug('Release ID: ' + config.releaseRecordId);
+        System.debug('Release ID: ' + config.releaseId);
         System.debug('Record Type ID: ' + config.userStoryRecordTypeId);
         System.debug('Total User Stories: ' + config.totalUserStories);
         System.debug('User Stories per Batch: ' + config.userStoriesPerBatch);
         System.debug('Metadata per US: ' + config.metadataPerUserStory);
-        System.debug('Environments: ' + config.environmentIds.size());
+        System.debug('Selected Environment: ' + config.selectedEnvironmentId);
         System.debug('========================================');
 
         // STEP 6: Execute the batch
