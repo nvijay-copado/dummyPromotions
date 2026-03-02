@@ -20,6 +20,7 @@
   "sourceApiVersion": "65.0",
   "packageAliases": {
     "copado-dummy-bulk-data": "0HodM0000001extSAA",
-    "copado-dummy-bulk-data@0.1.0-1": "04tdM000000OPTVQA4"
+    "copado-dummy-bulk-data@0.1.0-1": "04tdM000000OPTVQA4",
+    "copado-dummy-bulk-data@0.1.0-2": "04tdM000000OQkXQAW"
   }
 }
