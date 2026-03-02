@@ -1,12 +1,25 @@
 {
   "packageDirectories": [
     {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
       "path": "force-app",
-      "default": true
+      "default": true,
+      "package": "copado-dummy-bulk-data",
+      "versionDescription": "",
+      "dependencies": [
+        {
+          "package": "04tKA000000cBX4"
+        }
+      ]
     }
   ],
   "name": "dummyPromotions",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "65.0"
+  "sourceApiVersion": "65.0",
+  "packageAliases": {
+    "copado-dummy-bulk-data": "0HodM0000001extSAA",
+    "copado-dummy-bulk-data@0.1.0-1": "04tdM000000OPTVQA4"
+  }
 }
