@@ -1,10 +1,10 @@
 public class BulkUserStoryCreator {
     
-    private BulkUSConfig config;
-    private Integer currentBatch;
-    private Integer totalBatches;
-    private ProcessStage stage;
-    private List<Id> createdUserStoryIds;
+    @TestVisible private BulkUSConfig config;
+    @TestVisible private Integer currentBatch;
+    @TestVisible private Integer totalBatches;
+    @TestVisible private ProcessStage stage;
+    @TestVisible private List<Id> createdUserStoryIds;
     
     public enum ProcessStage {
         CREATE_USER_STORIES,
@@ -41,6 +41,7 @@ public class BulkUserStoryCreator {
     }
     
     // Constructor for chained execution
+    @TestVisible
     private BulkUserStoryCreator(BulkUSConfig config, Integer currentBatch, Integer totalBatches, 
                                   ProcessStage stage, List<Id> createdUserStoryIds) {
         this.config = config;

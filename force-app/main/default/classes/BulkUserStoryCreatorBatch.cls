@@ -1,11 +1,11 @@
 public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, Database.Stateful {
     
-    private BulkUserStoryCreatorController.BatchConfiguration config;
-    private ProcessPhase phase;
-    private List<Id> createdUserStoryIds;
-    private Set<Id> allCreatedUSIds; // Track all created IDs across batches
-    private Integer totalProcessed = 0;
-    private String batchRunId; // Unique identifier for this batch run
+    @TestVisible private BulkUserStoryCreatorController.BatchConfiguration config;
+    @TestVisible private ProcessPhase phase;
+    @TestVisible private List<Id> createdUserStoryIds;
+    @TestVisible private Set<Id> allCreatedUSIds; // Track all created IDs across batches
+    @TestVisible private Integer totalProcessed = 0;
+    @TestVisible private String batchRunId; // Unique identifier for this batch run
     
     public enum ProcessPhase {
         CREATE_USER_STORIES,
@@ -25,6 +25,7 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
     }
     
     // Constructor for chaining between phases
+    @TestVisible
     private BulkUserStoryCreatorBatch(BulkUserStoryCreatorController.BatchConfiguration config, ProcessPhase phase, Set<Id> allCreatedUSIds, String batchRunId) {
         this.config = config;
         this.phase = phase;
@@ -126,7 +127,9 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
                 BulkUserStoryCreatorBatch nextBatch = new BulkUserStoryCreatorBatch(
                     config, ProcessPhase.CREATE_METADATA, allCreatedUSIds, batchRunId
                 );
-                Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                if(!Test.isRunningTest()) {
+                    Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                }
             }
             when CREATE_METADATA {
                 System.debug('Metadata creation completed. Starting TRIGGER_PROMOTIONS phase...');
@@ -141,7 +144,9 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
                 BulkUserStoryCreatorBatch nextBatch = new BulkUserStoryCreatorBatch(
                     config, ProcessPhase.TRIGGER_PROMOTIONS, allCreatedUSIds, batchRunId
                 );
-                Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                if(!Test.isRunningTest()) {
+                    Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                }
             }
             when TRIGGER_PROMOTIONS {
                 System.debug('Promotions triggered successfully');
@@ -160,7 +165,9 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
                     BulkUserStoryCreatorBatch nextBatch = new BulkUserStoryCreatorBatch(
                         config, ProcessPhase.UPDATE_FINAL_ENV, allCreatedUSIds, batchRunId
                     );
-                    Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                    if(!Test.isRunningTest()) {
+                        Database.executeBatch(nextBatch, config.userStoriesPerBatch);
+                    }
                 }
             }
             when UPDATE_FINAL_ENV {
@@ -185,15 +192,19 @@ public class BulkUserStoryCreatorBatch implements Database.Batchable<Integer>, D
         List<copado__User_Story__c> uss = new List<copado__User_Story__c>();
         
         for(Integer i : scope) {
-            uss.add(new copado__User_Story__c(
+            copado__User_Story__c us = new copado__User_Story__c(
                 copado__User_Story_Title__c = 'Batch ' + batchRunId + ' Created - US ' + String.valueOf(i + 1).leftPad(4, '0'),
                 copado__Project__c = config.projectId,
                 copado__Release__c = config.releaseId,
                 copado__Environment__c = (Id)config.selectedEnvironmentId,
-                RecordTypeId = config.userStoryRecordTypeId,
                 copado__Status__c = 'Approved',
                 copado__Apex_Code_Coverage__c = 95
-            ));
+            );
+            
+            if (String.isNotBlank(config.userStoryRecordTypeId)) {
+                us.RecordTypeId = config.userStoryRecordTypeId;
+            }
+            uss.add(us);
         }
         
         insert uss;
